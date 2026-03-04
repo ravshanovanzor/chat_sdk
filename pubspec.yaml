@@ -1,0 +1,32 @@
+name: chat_sdk
+description: A customizable chat SDK for Flutter applications with WebSocket support, image sharing, and reply functionality.
+version: 1.0.0
+homepage: https://github.com/chat/chat_sdk
+repository: https://github.com/chat/chat_sdk
+
+environment:
+  sdk: ^3.7.0
+  flutter: ">=3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_bloc: ^8.1.2
+  equatable: ^2.0.7
+  web_socket_channel: ^3.0.1
+  image_picker: ^1.1.2
+  cached_network_image: ^3.4.1
+  shimmer: ^3.0.0
+  collection: ^1.19.1
+  dartz: ^0.10.1
+  dio: ^5.7.0
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+
