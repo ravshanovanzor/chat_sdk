@@ -9,34 +9,38 @@ class ChatCacheService {
   static const String _externalIdKey = 'external_id';
 
   static Box? _box;
-  static Future<void>? _initializationFuture;
+  static bool _hiveInitialized = false;
 
+  /// Initializes Hive and opens the cache box.
+  /// Safe to call multiple times — idempotent and concurrency-safe.
   static Future<void> initialize() async {
-    if (_box?.isOpen ?? false) return;
+    // If the box is already open, nothing to do.
+    if (_box != null && _box!.isOpen) return;
 
-    _initializationFuture ??= _openBox();
-
-    try {
-      await _initializationFuture;
-    } catch (_) {
-      // Allow retry if initialization fails.
-      _initializationFuture = null;
-      rethrow;
+    // Initialize Hive only once across the entire app lifetime.
+    if (!_hiveInitialized) {
+      await Hive.initFlutter();
+      _hiveInitialized = true;
     }
-  }
 
-  static Future<void> _openBox() async {
-    await Hive.initFlutter();
-    if (!Hive.isBoxOpen(_boxName)) {
-      _box = await Hive.openBox(_boxName);
-    } else {
+    // Open the box (or grab the already-open instance).
+    if (Hive.isBoxOpen(_boxName)) {
       _box = Hive.box(_boxName);
+    } else {
+      _box = await Hive.openBox(_boxName);
     }
+
+    debugPrint('ChatCache: Initialized successfully, box isOpen=${_box?.isOpen}');
   }
 
+  /// Ensures the Hive box is open before any read/write operation.
+  /// Returns null (instead of throwing) if initialization fails.
   static Future<Box?> _ensureBoxReady() async {
     try {
-      await initialize();
+      // Always re-check & re-open if needed (handles box-closed scenario).
+      if (_box == null || !_box!.isOpen) {
+        await initialize();
+      }
       if (_box == null || !_box!.isOpen) {
         debugPrint('ChatCache: Box is not available after initialization');
         return null;

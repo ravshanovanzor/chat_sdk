@@ -1,4 +1,3 @@
-import 'package:hive_flutter/hive_flutter.dart';
 import '../config/chat_config.dart';
 import 'chat_cache_service.dart';
 
@@ -22,7 +21,7 @@ class ChatSdk {
     if (theme != null) _theme = theme;
     if (localization != null) _localization = localization;
 
-    await Hive.initFlutter();
+    // Hive.initFlutter() is handled inside ChatCacheService.initialize()
     await ChatCacheService.initialize();
 
     _isInitialized = true;
