@@ -9,9 +9,9 @@
     },
     {
       "name": "bloc",
-      "rootUri": "file:///C:/Users/ITUnisoft/AppData/Local/Pub/Cache/hosted/pub.dev/bloc-9.2.0",
+      "rootUri": "file:///C:/Users/ITUnisoft/AppData/Local/Pub/Cache/hosted/pub.dev/bloc-8.1.4",
       "packageUri": "lib/",
-      "languageVersion": "2.14"
+      "languageVersion": "2.12"
     },
     {
       "name": "boolean_selector",
@@ -153,9 +153,9 @@
     },
     {
       "name": "flutter_bloc",
-      "rootUri": "file:///C:/Users/ITUnisoft/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_bloc-9.1.1",
+      "rootUri": "file:///C:/Users/ITUnisoft/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_bloc-8.1.6",
       "packageUri": "lib/",
-      "languageVersion": "2.14"
+      "languageVersion": "2.12"
     },
     {
       "name": "flutter_cache_manager",

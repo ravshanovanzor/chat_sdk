@@ -35,13 +35,15 @@ class ChatApiService {
   }
 
   static int _nextRequestId() {
-    _requestId=DateTime.now().millisecondsSinceEpoch;
+    _requestId = DateTime.now().millisecondsSinceEpoch;
     return _requestId;
   }
 
   static Future<Either<String, dynamic>> _callJsonRpc({
     required String method,
     Map<String, dynamic>? params,
+    int? timeoutSeconds,
+    String? customBaseUrl,
   }) async {
     try {
       final headers = await _getHeaders();
@@ -53,25 +55,31 @@ class ChatApiService {
         'id': id,
       };
 
+      final url = customBaseUrl != null ? customBaseUrl : '';
+
       final response = await dio.post(
-        '',
+        url,
         data: body,
-        options: Options(headers: headers),
+        options: Options(
+          headers: headers,
+          sendTimeout: Duration(seconds: timeoutSeconds ?? 30),
+          receiveTimeout: Duration(seconds: timeoutSeconds ?? 30),
+        ),
       );
 
       if (response.statusCode != 200) {
-        return left('HTTP ${response.statusCode}');
+        return left('HTTP ${response.statusCode}: ${response.statusMessage}');
       }
 
       final responseData = response.data;
       if (responseData is! Map) {
-        return left('Invalid response format');
+        return left('Invalid response format: expected JSON object');
       }
 
       if (responseData['error'] != null) {
         final error = responseData['error'];
         if (error is Map && error['message'] != null) {
-          return left(error['message'].toString());
+          return left('API Error: ${error['message']}');
         }
         return left('Unknown JSON-RPC error');
       }
@@ -86,9 +94,9 @@ class ChatApiService {
 
       return left(responseData['message']?.toString() ?? 'Unknown error');
     } on DioException catch (e) {
-      return left(e.message ?? 'Network error');
+      return left('Network error: ${e.message ?? 'Connection failed'}');
     } catch (e) {
-      return left(e.toString());
+      return left('Unexpected error: ${e.toString()}');
     }
   }
 
@@ -106,8 +114,12 @@ class ChatApiService {
         if (replyToId != null) 'reply_to_id': replyToId,
       });
 
+      final uploadUrl = ChatSdk.config.imageUploadBaseUrl != null
+          ? '${ChatSdk.config.imageUploadBaseUrl}${ChatSdk.config.uploadImageEndpoint}'
+          : ChatSdk.config.uploadImageEndpoint;
+
       final response = await dio.post(
-        ChatSdk.config.uploadImageEndpoint,
+        uploadUrl,
         data: formData,
         options: Options(headers: headers),
       );
@@ -178,6 +190,7 @@ class ChatApiService {
       final rpcResult = await _callJsonRpc(
         method: ChatSdk.config.uploadImageEndpoint,
         params: params,
+        customBaseUrl: ChatSdk.config.imageUploadBaseUrl, // Rasm uchun maxsus URL
       );
 
       return rpcResult.fold(

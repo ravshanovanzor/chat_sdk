@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 class ChatConfig {
   final String baseUrl;
+  final String? imageUploadBaseUrl; // Yangi qo'shilgan maydon
   final String webSocketUrl;
   final String getConversationEndpoint;
   final String getHistoryEndpoint;
@@ -17,6 +18,7 @@ class ChatConfig {
 
   const ChatConfig({
     required this.baseUrl,
+    this.imageUploadBaseUrl,
     required this.webSocketUrl,
     required this.getConversationEndpoint,
     required this.getHistoryEndpoint,
@@ -225,4 +227,3 @@ class ChatLocalization {
     return months[month - 1];
   }
 }
-
