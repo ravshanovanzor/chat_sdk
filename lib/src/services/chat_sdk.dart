@@ -1,5 +1,6 @@
 import 'package:hive_flutter/hive_flutter.dart';
 import '../config/chat_config.dart';
+import 'chat_cache_service.dart';
 
 class ChatSdk {
   static late ChatConfig _config;
@@ -22,15 +23,9 @@ class ChatSdk {
     if (localization != null) _localization = localization;
 
     await Hive.initFlutter();
-    await _openCacheBox();
+    await ChatCacheService.initialize();
 
     _isInitialized = true;
-  }
-
-  static Future<void> _openCacheBox() async {
-    if (!Hive.isBoxOpen('chat_cache')) {
-      await Hive.openBox('chat_cache');
-    }
   }
 
   static void updateTheme(ChatTheme theme) {
@@ -41,9 +36,7 @@ class ChatSdk {
     _localization = localization;
   }
 
-  static void clearCache() {
-    if (Hive.isBoxOpen('chat_cache')) {
-      Hive.box('chat_cache').clear();
-    }
+  static Future<void> clearCache() async {
+    await ChatCacheService.clear();
   }
 }

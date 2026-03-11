@@ -10,9 +10,17 @@ class ChatCacheService {
 
   static Box? _box;
 
+  static Future<void> initialize() async {
+    if (!Hive.isBoxOpen(_boxName)) {
+      _box = await Hive.openBox(_boxName);
+    } else {
+      _box = Hive.box(_boxName);
+    }
+  }
+
   static Box get box {
     if (_box == null || !_box!.isOpen) {
-      _box = Hive.box(_boxName);
+      throw StateError('ChatCacheService must be initialized before use. Call initialize() first.');
     }
     return _box!;
   }
