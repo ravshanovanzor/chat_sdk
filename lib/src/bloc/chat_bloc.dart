@@ -35,8 +35,15 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   }
 
   Future<void> _onInit(ChatInitEvent event, Emitter<ChatState> emit) async {
-    final cachedMessages = ChatCacheService.getMessages();
-    final cachedExternalId = ChatCacheService.getExternalId();
+    try {
+      await ChatCacheService.initialize();
+    } catch (e, stackTrace) {
+      debugPrint('ChatCache: Initialization in bloc init failed - $e');
+      debugPrint('ChatCache: Stack trace - $stackTrace');
+    }
+
+    final cachedMessages = await ChatCacheService.getMessages();
+    final cachedExternalId = await ChatCacheService.getExternalId();
 
     if (cachedMessages != null && cachedMessages.isNotEmpty && cachedExternalId != null) {
       emit(state.copyWith(
@@ -60,7 +67,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       },
       (result) async {
         if (result.externalId != null) {
-          ChatCacheService.saveExternalId(result.externalId!);
+          await ChatCacheService.saveExternalId(result.externalId!);
         }
 
         emit(state.copyWith(
@@ -354,4 +361,3 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     return super.close();
   }
 }
-
