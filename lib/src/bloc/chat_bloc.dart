@@ -103,18 +103,21 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     final now = DateTime.now();
     final time = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
 
-    final newMessages = List<ChatMessageModel>.from(state.messages);
     final replyTo = state.replyToMessage;
-
-    newMessages.add(ChatMessageModel(
+    
+    // Create new message efficiently
+    final newMessage = ChatMessageModel(
       text: event.message,
       isBot: false,
       time: time,
       createdAt: now,
       replyToId: replyTo?.messageId,
       replyToText: replyTo?.text,
-    ));
+    );
 
+    // Update messages list without creating unnecessary copies
+    final newMessages = [...state.messages, newMessage];
+    
     _webSocketService?.sendMessage(event.message, replyToId: replyTo?.messageId);
 
     emit(state.copyWith(
@@ -123,7 +126,10 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       clearReplyToMessage: true,
     ));
 
-    await ChatCacheService.saveMessages(newMessages);
+    // Cache asynchronously to avoid blocking UI
+    ChatCacheService.saveMessages(newMessages).catchError((e) {
+      debugPrint('ChatBloc: Failed to cache messages - $e');
+    });
   }
 
   Future<void> _onSendImage(ChatSendImageEvent event, Emitter<ChatState> emit) async {
@@ -253,10 +259,13 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   }
 
   void _onOperatorTyping(ChatOperatorTypingEvent event, Emitter<ChatState> emit) {
+    if (state.isOperatorTyping) return; // Avoid unnecessary state updates
+    
     emit(state.copyWith(isOperatorTyping: true));
 
+    // Use a more efficient approach for typing indicator
     Future.delayed(const Duration(seconds: 3), () {
-      if (!emit.isDone) {
+      if (!emit.isDone && state.isOperatorTyping) {
         emit(state.copyWith(isOperatorTyping: false));
       }
     });
@@ -339,6 +348,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
 
   @override
   Future<void> close() {
+    debugPrint('ChatBloc: Closing BLoC');
     _webSocketService?.dispose();
     _webSocketService = null;
     return super.close();

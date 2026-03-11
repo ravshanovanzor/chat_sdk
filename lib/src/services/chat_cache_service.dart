@@ -20,8 +20,10 @@ class ChatCacheService {
     try {
       final jsonList = messages.map((m) => m.toJson()).toList();
       await box.put(_messagesKey, jsonEncode(jsonList));
-    } catch (e) {
-      // Ignore cache errors
+      debugPrint('ChatCache: Saved ${messages.length} messages');
+    } catch (e, stackTrace) {
+      debugPrint('ChatCache: Failed to save messages - $e');
+      debugPrint('ChatCache: Stack trace - $stackTrace');
     }
   }
 
@@ -30,12 +32,15 @@ class ChatCacheService {
       final data = box.get(_messagesKey);
       if (data != null) {
         final List<dynamic> jsonList = jsonDecode(data);
-        return jsonList
+        final messages = jsonList
             .map((json) => ChatMessageModel.fromJson(json as Map<String, dynamic>))
             .toList();
+        debugPrint('ChatCache: Loaded ${messages.length} messages');
+        return messages;
       }
-    } catch (e) {
-      // Ignore cache errors
+    } catch (e, stackTrace) {
+      debugPrint('ChatCache: Failed to load messages - $e');
+      debugPrint('ChatCache: Stack trace - $stackTrace');
     }
     return null;
   }
@@ -43,15 +48,23 @@ class ChatCacheService {
   static Future<void> saveExternalId(String externalId) async {
     try {
       await box.put(_externalIdKey, externalId);
-    } catch (e) {
-      // Ignore cache errors
+      debugPrint('ChatCache: Saved external ID');
+    } catch (e, stackTrace) {
+      debugPrint('ChatCache: Failed to save external ID - $e');
+      debugPrint('ChatCache: Stack trace - $stackTrace');
     }
   }
 
   static String? getExternalId() {
     try {
-      return box.get(_externalIdKey);
-    } catch (e) {
+      final externalId = box.get(_externalIdKey);
+      if (externalId != null) {
+        debugPrint('ChatCache: Loaded external ID');
+      }
+      return externalId;
+    } catch (e, stackTrace) {
+      debugPrint('ChatCache: Failed to load external ID - $e');
+      debugPrint('ChatCache: Stack trace - $stackTrace');
       return null;
     }
   }
@@ -59,8 +72,10 @@ class ChatCacheService {
   static Future<void> clear() async {
     try {
       await box.clear();
-    } catch (e) {
-      // Ignore cache errors
+      debugPrint('ChatCache: Cache cleared successfully');
+    } catch (e, stackTrace) {
+      debugPrint('ChatCache: Failed to clear cache - $e');
+      debugPrint('ChatCache: Stack trace - $stackTrace');
     }
   }
 }

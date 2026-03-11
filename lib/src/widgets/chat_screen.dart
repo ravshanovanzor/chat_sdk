@@ -84,6 +84,10 @@ class _ChatScreenBodyState extends State<_ChatScreenBody> {
   }
 
   void _onTextChanged(String text) {
+    if (text.trim().isEmpty == _controller.text.trim().isEmpty) {
+      return; // Avoid unnecessary setState calls
+    }
+    
     setState(() {});
 
     if (text.trim().isEmpty) {
@@ -98,7 +102,9 @@ class _ChatScreenBodyState extends State<_ChatScreenBody> {
     }
 
     _typingTimer?.cancel();
-    _typingTimer = Timer(const Duration(seconds: 2), () => _isTyping = false);
+    _typingTimer = Timer(const Duration(seconds: 2), () {
+      _isTyping = false;
+    });
   }
 
   String _formatDateSeparator(DateTime date) {
@@ -132,7 +138,9 @@ class _ChatScreenBodyState extends State<_ChatScreenBody> {
   }
 
   void _scrollToBottom() {
-    Future.delayed(const Duration(milliseconds: 100), () {
+    if (!_scrollController.hasClients) return;
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
           0,
@@ -211,7 +219,7 @@ class _ChatScreenBodyState extends State<_ChatScreenBody> {
             width: 60,
             height: 60,
             decoration: BoxDecoration(
-              color: theme.primaryColor.withOpacity(0.1),
+              color: theme.primaryColor.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, color: theme.primaryColor, size: 28),
@@ -309,6 +317,7 @@ class _ChatScreenBodyState extends State<_ChatScreenBody> {
 
   @override
   void dispose() {
+    debugPrint('ChatScreen: Disposing resources');
     _scrollController.removeListener(_onScroll);
     _controller.dispose();
     _scrollController.dispose();

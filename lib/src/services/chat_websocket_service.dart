@@ -12,6 +12,9 @@ class ChatWebSocketService {
   bool _isConnected = false;
   bool _shouldReconnect = true;
   String? _externalId;
+  int _reconnectAttempts = 0;
+  static const int _maxReconnectAttempts = 5;
+  static const Duration _baseReconnectDelay = Duration(seconds: 1);
 
   final Function(Map<String, dynamic>)? onMessageReceived;
   final Function()? onConnected;
@@ -32,12 +35,17 @@ class ChatWebSocketService {
   bool get isConnected => _isConnected;
 
   Future<void> connect(String externalId) async {
+    if (_isConnected) {
+      debugPrint('ChatWebSocket: Already connected');
+      return;
+    }
+
     _externalId = externalId;
     _shouldReconnect = true;
 
     try {
       final wsUrl = '${ChatSdk.config.webSocketUrl}$externalId/';
-      debugPrint('ChatWebSocket: Connecting to $wsUrl');
+      debugPrint('ChatWebSocket: Connecting to $wsUrl (attempt #$_reconnectAttempts)');
 
       _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
 
@@ -45,15 +53,18 @@ class ChatWebSocketService {
         _onMessage,
         onError: _onError,
         onDone: _onDone,
+        cancelOnError: false,
       );
 
       _isConnected = true;
+      _reconnectAttempts = 0; // Reset on successful connection
       onConnected?.call();
       _startPingTimer();
 
-      debugPrint('ChatWebSocket: Connected');
+      debugPrint('ChatWebSocket: Connected successfully');
     } catch (e) {
       debugPrint('ChatWebSocket: Connection error - $e');
+      _isConnected = false;
       _scheduleReconnect();
     }
   }
@@ -104,10 +115,18 @@ class ChatWebSocketService {
   }
 
   void _scheduleReconnect() {
-    if (!_shouldReconnect || _externalId == null) return;
+    if (!_shouldReconnect || _externalId == null || _reconnectAttempts >= _maxReconnectAttempts) {
+      debugPrint('ChatWebSocket: Max reconnect attempts reached or reconnection disabled');
+      return;
+    }
 
+    _reconnectAttempts++;
+    final delay = _baseReconnectDelay * (1 << (_reconnectAttempts - 1)); // Exponential backoff
+    
+    debugPrint('ChatWebSocket: Scheduling reconnect #$_reconnectAttempts in ${delay.inSeconds}s');
+    
     _reconnectTimer?.cancel();
-    _reconnectTimer = Timer(ChatSdk.config.webSocketReconnectDelay, () {
+    _reconnectTimer = Timer(delay, () {
       if (_shouldReconnect && _externalId != null) {
         connect(_externalId!);
       }
@@ -165,11 +184,23 @@ class ChatWebSocketService {
   }
 
   void dispose() {
+    debugPrint('ChatWebSocket: Disposing service');
     _shouldReconnect = false;
+    _reconnectAttempts = 0;
     _reconnectTimer?.cancel();
     _pingTimer?.cancel();
     _subscription?.cancel();
-    _channel?.sink.close();
+    
+    if (_channel != null) {
+      try {
+        _channel!.sink.close();
+      } catch (e) {
+        debugPrint('ChatWebSocket: Error closing channel - $e');
+      }
+    }
+    
     _isConnected = false;
+    _channel = null;
+    _subscription = null;
   }
 }

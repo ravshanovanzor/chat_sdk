@@ -144,7 +144,7 @@
     },
     {
       "name": "flutter_bloc",
-      "version": "9.1.1",
+      "version": "8.1.6",
       "dependencies": [
         "bloc",
         "flutter",
@@ -431,7 +431,7 @@
     },
     {
       "name": "bloc",
-      "version": "9.2.0",
+      "version": "8.1.4",
       "dependencies": [
         "meta"
       ]

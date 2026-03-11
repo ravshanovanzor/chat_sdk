@@ -35,13 +35,14 @@ class ChatApiService {
   }
 
   static int _nextRequestId() {
-    _requestId=DateTime.now().millisecondsSinceEpoch;
+    _requestId = DateTime.now().millisecondsSinceEpoch;
     return _requestId;
   }
 
   static Future<Either<String, dynamic>> _callJsonRpc({
     required String method,
     Map<String, dynamic>? params,
+    int? timeoutSeconds,
   }) async {
     try {
       final headers = await _getHeaders();
@@ -53,42 +54,53 @@ class ChatApiService {
         'id': id,
       };
 
+      debugPrint('ChatApi: Calling $method with params: $params');
+
       final response = await dio.post(
         '',
         data: body,
-        options: Options(headers: headers),
+        options: Options(
+          headers: headers,
+          sendTimeout: Duration(seconds: timeoutSeconds ?? 30),
+          receiveTimeout: Duration(seconds: timeoutSeconds ?? 30),
+        ),
       );
 
       if (response.statusCode != 200) {
-        return left('HTTP ${response.statusCode}');
+        return left('HTTP ${response.statusCode}: ${response.statusMessage}');
       }
 
       final responseData = response.data;
       if (responseData is! Map) {
-        return left('Invalid response format');
+        return left('Invalid response format: expected JSON object');
       }
 
       if (responseData['error'] != null) {
         final error = responseData['error'];
         if (error is Map && error['message'] != null) {
-          return left(error['message'].toString());
+          return left('API Error: ${error['message']}');
         }
         return left('Unknown JSON-RPC error');
       }
 
       if (responseData.containsKey('result')) {
+        debugPrint('ChatApi: Successfully called $method');
         return right(responseData['result']);
       }
 
       if (responseData['status'] == true) {
+        debugPrint('ChatApi: Successfully called $method');
         return right(responseData['result']);
       }
 
       return left(responseData['message']?.toString() ?? 'Unknown error');
     } on DioException catch (e) {
-      return left(e.message ?? 'Network error');
-    } catch (e) {
-      return left(e.toString());
+      debugPrint('ChatApi: Network error for $method - ${e.type}: ${e.message}');
+      return left('Network error: ${e.message ?? 'Connection failed'}');
+    } catch (e, stackTrace) {
+      debugPrint('ChatApi: Unexpected error for $method - $e');
+      debugPrint('ChatApi: Stack trace - $stackTrace');
+      return left('Unexpected error: ${e.toString()}');
     }
   }
 
