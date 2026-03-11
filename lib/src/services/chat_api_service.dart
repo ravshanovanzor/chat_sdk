@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:dartz/dartz.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import '../models/chat_message_model.dart';
 import 'chat_sdk.dart';
 
@@ -26,7 +27,7 @@ class ChatApiService {
     _imageUploadDio ??= Dio(
       BaseOptions(
         baseUrl: ChatSdk.config.imageUploadBaseUrl ?? ChatSdk.config.baseUrl,
-        connectTimeout: const Duration(seconds: 60), // Rasm yuklash uchun uzoqroq timeout
+        connectTimeout: const Duration(seconds: 60),
         receiveTimeout: const Duration(seconds: 60),
       ),
     );

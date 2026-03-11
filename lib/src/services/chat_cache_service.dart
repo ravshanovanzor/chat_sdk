@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
 import '../models/chat_message_model.dart';
 
@@ -79,4 +80,3 @@ class ChatCacheService {
     }
   }
 }
-
