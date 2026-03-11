@@ -8,6 +8,7 @@ import 'chat_sdk.dart';
 
 class ChatApiService {
   static Dio? _dio;
+  static Dio? _imageUploadDio;
   static int _requestId = 0;
 
   static Dio get dio {
@@ -21,9 +22,34 @@ class ChatApiService {
     return _dio!;
   }
 
+  static Dio get imageUploadDio {
+    _imageUploadDio ??= Dio(
+      BaseOptions(
+        baseUrl: ChatSdk.config.imageUploadBaseUrl ?? ChatSdk.config.baseUrl,
+        connectTimeout: const Duration(seconds: 60), // Rasm yuklash uchun uzoqroq timeout
+        receiveTimeout: const Duration(seconds: 60),
+      ),
+    );
+    return _imageUploadDio!;
+  }
+
   static Future<Map<String, String>> _getHeaders() async {
     final token = await ChatSdk.config.authTokenProvider();
     final headers = <String, String>{'Content-Type': 'application/json'};
+    if (token != null) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+    if (ChatSdk.config.headersProvider != null) {
+      final customHeaders = await ChatSdk.config.headersProvider!();
+      headers.addAll(customHeaders);
+    }
+    return headers;
+  }
+
+  static Future<Map<String, String>> _getImageUploadHeaders() async {
+    final token = await ChatSdk.config.authTokenProvider();
+    final headers = <String, String>{};
+    // Rasm yuklashda Content-Type avtomatik sozlanadi (multipart/form-data)
     if (token != null) {
       headers['Authorization'] = 'Bearer $token';
     }
@@ -106,32 +132,33 @@ class ChatApiService {
     int? replyToId,
   }) async {
     try {
-      final headers = await _getHeaders();
-      headers['Content-Type'] = 'multipart/form-data';
+      final headers = await _getImageUploadHeaders();
+      
+      debugPrint('ChatApi: Uploading image to ${ChatSdk.config.imageUploadBaseUrl ?? ChatSdk.config.baseUrl}');
 
       final formData = FormData.fromMap({
         'image': await MultipartFile.fromFile(filePath, filename: fileName),
         if (replyToId != null) 'reply_to_id': replyToId,
       });
 
-      final uploadUrl = ChatSdk.config.imageUploadBaseUrl != null
-          ? '${ChatSdk.config.imageUploadBaseUrl}${ChatSdk.config.uploadImageEndpoint}'
-          : ChatSdk.config.uploadImageEndpoint;
-
-      final response = await dio.post(
-        uploadUrl,
+      final response = await imageUploadDio.post(
+        ChatSdk.config.uploadImageEndpoint,
         data: formData,
         options: Options(headers: headers),
       );
 
       if (response.statusCode == 200 && response.data['status'] == true) {
+        debugPrint('ChatApi: Image uploaded successfully');
         return right(response.data['result'] as Map<String, dynamic>);
       }
       return left(response.data['message'] ?? 'Upload failed');
     } on DioException catch (e) {
-      return left(e.message ?? 'Network error');
-    } catch (e) {
-      return left(e.toString());
+      debugPrint('ChatApi: Image upload error - ${e.type}: ${e.message}');
+      return left('Upload error: ${e.message ?? 'Connection failed'}');
+    } catch (e, stackTrace) {
+      debugPrint('ChatApi: Unexpected upload error - $e');
+      debugPrint('ChatApi: Stack trace - $stackTrace');
+      return left('Unexpected upload error: ${e.toString()}');
     }
   }
 

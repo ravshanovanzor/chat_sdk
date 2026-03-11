@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class ChatConfig {
   final String baseUrl;
-  final String? imageUploadBaseUrl; // Yangi qo'shilgan maydon
+  final String? imageUploadBaseUrl; // Rasm yuklash uchun alohida base URL
   final String webSocketUrl;
   final String getConversationEndpoint;
   final String getHistoryEndpoint;
@@ -18,7 +18,7 @@ class ChatConfig {
 
   const ChatConfig({
     required this.baseUrl,
-    this.imageUploadBaseUrl,
+    this.imageUploadBaseUrl, // Rasm yuklash uchun alohida URL (agar bo'lmasa baseUrl ishlatiladi)
     required this.webSocketUrl,
     required this.getConversationEndpoint,
     required this.getHistoryEndpoint,
